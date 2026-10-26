@@ -112,3 +112,93 @@ SELECT
 FROM payments
 GROUP BY payment_method
 ORDER BY success_rate DESC;
+
+/*
+Q4. Which couriers have the highest delivery completion rate?
+
+The logistics manager wants to compare courier performance based on shipment outcomes.
+- Group by courier.
+- Calculate total shipments, delivered shipments, shipments currently in transit, and shipments marked delayed.
+- Calculate the delivery completion rate as delivered shipments divided by total shipments.
+- Display only couriers with at least 20 shipments.
+- Sort by completion rate descending.
+*/
+
+SELECT
+	courier,
+    
+    COUNT(shipment_id) AS total_shipments,
+    
+    COUNT(
+		CASE
+			WHEN shipment_status = "Delivered" THEN 1
+		END
+    ) AS delivered_shipments,
+    
+    COUNT(
+		CASE
+			WHEN shipment_status = "In Transit" THEN 1
+		END
+    ) AS in_transit_shipments,
+    
+    COUNT(
+		CASE
+			WHEN shipment_status = "Delayed" THEN 1
+		END
+    ) AS delayed_shipments,
+    
+    ROUND(COUNT(
+		CASE
+			WHEN shipment_status = "Delivered" THEN 1
+		END
+    ) / NULLIF(COUNT(shipment_id),0),2) AS delivery_completion_rate
+    
+FROM shipments
+GROUP BY courier
+HAVING COUNT(shipment_id) >= 20
+ORDER BY delivery_completion_rate DESC;
+
+/*
+Q5. Which product categories have the greatest return exposure?
+
+The product team wants to compare returned items and refund amounts across categories.
+- Calculate units sold, returned item records, total refund amount, and the percentage of sold units represented by returned items for each category.
+- Include only non-cancelled orders in the sales denominator.
+- Group by category.
+- Sort by the return percentage descending.
+*/
+
+
+SELECT
+    c.category_id,
+    c.category_name,
+
+    SUM(oi.quantity) AS units_sold,
+
+    COUNT(r.order_item_id) AS returned_item_records,
+
+    COALESCE(SUM(r.refund_amount), 0) AS total_refund_amount,
+
+    ROUND(
+        100.0 * COUNT(r.order_item_id)
+        / NULLIF(SUM(oi.quantity), 0),
+        2
+    ) AS return_percentage
+
+FROM categories c
+JOIN products p
+    ON c.category_id = p.category_id
+JOIN order_items oi
+    ON p.product_id = oi.product_id
+JOIN orders o
+    ON oi.order_id = o.order_id
+LEFT JOIN returns r
+    ON oi.order_item_id = r.order_item_id
+
+WHERE o.order_status <> 'Cancelled'
+
+GROUP BY
+    c.category_id,
+    c.category_name
+
+ORDER BY return_percentage DESC;
