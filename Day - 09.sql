@@ -202,3 +202,293 @@ GROUP BY
     c.category_name
 
 ORDER BY return_percentage DESC;
+
+/*
+Q6. Which customer loyalty tiers contribute most to revenue?
+
+Management wants to compare revenue contributions across loyalty tiers.
+- Group by loyalty_tier.
+- Calculate total customers, customers with qualifying orders, delivered order count, delivered order value, and cancelled order count.
+- Calculate delivered revenue as a percentage of total delivered revenue across all loyalty tiers.
+- Exclude cancelled orders from the delivered-revenue calculation.
+- Sort by delivered order value descending.
+*/
+
+SELECT
+	c.loyalty_tier,
+    
+    COUNT(c.customer_id) AS total_customers,
+    
+    COUNT(o.customer_id) AS customers_with_qualifying_orders,
+    
+    COUNT(
+		CASE
+			WHEN o.order_status = "Delivered" THEN 1
+		END
+    ) AS delivered_orders,
+    
+    SUM(
+		CASE
+			WHEN o.order_status = "Delivered" THEN o.order_total
+		END
+    ) AS delivered_revenue,
+    
+    COUNT(
+		CASE
+			WHEN o.order_status = "Cancelled" THEN 1
+		END
+    ) AS cancelled_orders,
+    
+    ROUND(SUM(
+		CASE
+			WHEN o.order_status = "Delivered" THEN o.order_total
+		END
+    ) / SUM(o.order_total) * 100,2) AS delivery_rate
+    
+FROM customers c
+JOIN orders o
+	ON o.customer_id = c.customer_id
+GROUP BY c.loyalty_tier
+ORDER BY delivered_revenue DESC;
+
+/*
+Q7. Identify products with high sales but limited remaining stock
+
+The inventory team wants to identify products that are selling well but may need replenishment.
+- Calculate units sold per product using non-cancelled orders.
+- Display current stock, units sold, and total line revenue.
+- Use conditional aggregation to count qualifying units sold during 2025 and during 2026 separately.
+- Include active products with fewer than 20 units currently in stock and at least 30 qualifying units sold overall.
+- Sort by total units sold descending.
+*/
+
+SELECT
+	p.product_id,
+    p.product_name,
+    p.stock_quantity AS current_stock,
+    
+    SUM(oi.quantity) AS units_sold,
+    
+    SUM(oi.line_total) AS total_line_revenue,
+    
+    SUM(
+		CASE
+			WHEN o.order_date >= '2025-01-01'
+				AND o.order_date < '2026-01-01'
+			THEN oi.quantity
+			ELSE 0
+		END
+    ) AS unit_sold_2025,
+    
+    SUM(
+		CASE
+			WHEN o.order_date >= '2026-01-01'
+				AND o.order_date < '2027-01-01'
+			THEN oi.quantity
+			ELSE 0
+		END
+    ) AS unit_sold_2026
+    
+FROM orders o
+
+JOIN order_items oi
+	ON o.order_id = oi.order_id
+JOIN products p
+	ON oi.product_id = p.product_id
+    
+WHERE o.order_status <> "Cancelled"
+	AND p.is_active = 1
+
+GROUP BY
+	p.product_id,
+    p.product_name,
+    p.stock_quantity
+    
+HAVING p.stock_quantity < 20
+    AND SUM(oi.quantity) >= 30
+    
+ORDER BY units_sold DESC;
+
+/*
+Q8. Which months have the strongest delivered-order performance?
+
+The sales team wants to understand monthly performance and cancellation trends.
+- Group orders by year and month.
+- Calculate total orders, delivered orders, cancelled orders, delivered order value, and cancelled order value.
+- Calculate the monthly cancellation rate.
+- Sort chronologically from earliest to latest month.
+*/
+
+SELECT
+    MONTH(order_date) AS order_month,
+    
+    COUNT(order_id) AS total_orders,
+    
+    COUNT(
+		CASE
+			WHEN order_status = "Delivered" THEN 1
+		END
+    ) AS delivered_orders,
+    
+    COUNT(
+		CASE
+			WHEN order_status = "Cancelled" THEN 1
+		END
+    ) AS cancelled_orders,
+    
+    SUM(
+		CASE
+			WHEN order_status = "Delivered" THEN order_total
+		END
+    ) AS delivered_order_value,
+    
+    SUM(
+		CASE
+			WHEN order_status = "Cancelled" THEN order_total
+		END
+    ) AS cancelled_order_value,
+    
+    ROUND(SUM(
+		CASE
+			WHEN order_status = "Cancelled" THEN order_total
+		END
+    ) / NULLIF(SUM(order_total),0) * 100,2) AS monthly_cancellation_rate
+    
+FROM orders
+GROUP BY MONTH(order_date)
+ORDER BY MONTH(order_date) ASC;
+
+/*
+Q9. Which customers are frequent buyers but have a high cancellation share?
+
+The customer success team wants to identify customers who place orders frequently but also cancel a substantial proportion of them.
+- Calculate total orders, cancelled orders, non-cancelled orders, and total non-cancelled order value for each customer.
+- Calculate the percentage of the customer's orders that were cancelled.
+- Include customers with at least five orders and a cancellation rate above 30%.
+- Display customer ID, full name, loyalty tier, and all calculated metrics.
+- Sort by cancellation rate descending, then total order count descending.
+*/
+
+SELECT
+	c.customer_id,
+    CONCAT(c.first_name, ' ',c.last_name) AS customer_name,
+    c.loyalty_tier,
+    
+	COUNT(o.order_id) AS total_orders,
+    
+    COUNT(
+		CASE
+			WHEN o.order_status = "Cancelled" THEN 1
+		END
+    ) AS cancelled_orders,
+    
+    COUNT(
+		CASE
+			WHEN o.order_status <> "Cancelled" THEN 1
+		END
+    ) AS non_cancelled_orders,
+    
+    SUM(
+		CASE
+			WHEN o.order_status <> "Cancelled" THEN o.order_total
+            ELSE 0
+		END
+    ) AS non_cancelled_order_value,
+    
+    ROUND(COUNT(
+		CASE
+			WHEN o.order_status = "Cancelled" THEN 1
+		END
+    ) / NULLIF(COUNT(o.order_id),0) * 100,2) AS cancellation_rate
+    
+FROM customers c
+JOIN orders o
+	ON c.customer_id = o.customer_id
+
+GROUP BY
+	c.customer_id,
+    CONCAT(c.first_name, ' ',c.last_name),
+    c.loyalty_tier
+    
+HAVING COUNT(o.order_id) >= 5
+	AND ROUND(COUNT(
+		CASE
+			WHEN o.order_status = "Cancelled" THEN 1
+		END
+    ) / NULLIF(COUNT(o.order_id),0) * 100,2) > 30
+    
+ORDER BY cancellation_rate DESC, total_orders DESC;
+
+/*
+Q10. Build a multi-KPI product performance report
+
+The merchandising director wants one product-level report combining sales performance and demand signals.
+
+For each product, calculate:
+- Total units sold in non-cancelled orders.
+- Total item-level revenue.
+- Units sold through the Website channel.
+- Units sold through the Mobile App channel.
+- Units sold at a discount greater than 0%.
+- Units sold without a discount.
+- Current stock quantity and active status.
+Include products with at least 20 units sold or item-level revenue above ₹20,000. Sort by item-level revenue descending.
+*/
+
+SELECT
+	p.product_id,
+    p.product_name,
+    
+    SUM(oi.quantity) AS total_units_sold,
+    
+    SUM(oi.line_total) AS item_revenue,
+    
+    SUM(
+		CASE
+			WHEN o.sales_channel = "Website" THEN oi.quantity
+            ELSE 0
+		END
+    ) AS unit_sold_through_website,
+    
+    SUM(
+		CASE
+			WHEN o.sales_channel = "Mobile App" THEN oi.quantity
+            ELSE 0
+		END
+    ) AS unit_sold_through_mobile_app,
+    
+    SUM(
+		CASE
+			WHEN oi.discount_percent > 0 THEN oi.quantity
+            ELSE 0
+		END
+    ) AS discounted_unit_sold,
+    
+    SUM(
+		CASE
+			WHEN oi.discount_percent = 0 THEN oi.quantity
+            ELSE 0
+		END
+    ) AS non_discounted_unit_sold,
+    
+    p.stock_quantity AS current_stock,
+    p.is_active AS active_status
+    
+FROM orders o
+JOIN order_items oi
+	ON o.order_id = oi.order_id
+JOIN products p
+	ON oi.product_id = p.product_id
+    
+WHERE o.order_status <> "Cancelled"
+    
+GROUP BY
+	p.product_id,
+    p.product_name,
+    p.stock_quantity,
+    p.is_active
+    
+HAVING SUM(oi.quantity) >= 20
+	OR SUM(oi.line_total) > 20000
+    
+ORDER BY SUM(oi.line_total) DESC;
