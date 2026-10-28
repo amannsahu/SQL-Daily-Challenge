@@ -148,3 +148,159 @@ HAVING COUNT(o.customer_id) >= 2
     
 ORDER BY total_revenue DESC
 LIMIT 50;
+
+/*
+Q6. Find orders with no recorded payment
+
+Tables: orders, payments
+
+The finance team wants to investigate orders without any corresponding payment record.
+- Display order ID, customer ID, order date, order status, and order total.
+- Return orders with no matching record in payments.
+- Exclude cancelled orders.
+- Sort by order date from oldest to newest.
+*/
+
+SELECT
+	o.order_id,
+    o.customer_id,
+    o.order_date,
+    o.order_status,
+    o.order_total
+    
+FROM orders o
+LEFT JOIN payments p
+	ON p.order_id = o.order_id
+    
+WHERE p.order_id IS NULL
+	AND o.order_status <> "Cancelled"
+
+ORDER BY o.order_date ASC;
+
+/*
+Q7. Which products have never received a customer review?
+
+The customer experience team wants to find products with no recorded customer feedback.
+- Display product ID, product name, brand, category ID, and unit price.
+- Include only active products.
+- Return products with no matching record in reviews.
+- Sort by unit price descending.
+*/
+
+SELECT
+	p.product_id,
+    p.product_name,
+    p.brand,
+    p.category_id,
+    p.unit_price
+    
+FROM products p
+LEFT JOIN reviews r
+	ON r.product_id = p.product_id
+    
+WHERE p.is_active = 1
+	AND r.product_id IS NULL
+    
+ORDER BY p.unit_price DESC;
+
+/*
+Q8. Which orders have no shipment record?
+
+The logistics team wants to investigate orders that have no corresponding shipment record.
+- Display order ID, order date, order status, shipping state, and order total.
+- Exclude cancelled orders.
+- Return orders with no matching record in shipments.
+- Sort by order date ascending.
+*/
+
+SELECT
+	o.order_id,
+    o.order_date,
+    o.order_status,
+    o.shipping_state,
+    o.order_total
+    
+FROM orders o
+LEFT JOIN shipments s
+	ON s.order_id = o.order_id
+    
+WHERE s.order_id IS NULL
+	AND o.order_status <> "Cancelled"
+    
+ORDER BY o.order_date ASC;
+
+/*
+Q9. Which customers have placed orders but have no recorded reviews?
+
+The customer experience team wants to find customers who purchased products but have not submitted any recorded reviews.
+- Display customer ID, full name, loyalty tier, and qualifying order count.
+- Include only customers with at least one non-cancelled order.
+- Return customers with no matching review record.
+- Sort by qualifying order count descending.
+*/
+
+SELECT
+	c.customer_id,
+    CONCAT(c.first_name, ' ',c.last_name) AS full_name,
+    c.loyalty_tier,
+    COUNT(DISTINCT o.order_id) AS order_count
+    
+FROM customers c
+LEFT JOIN orders o
+	ON o.customer_id = c.customer_id
+    
+WHERE o.order_status <> "Cancelled"
+	AND NOT EXISTS (
+		SELECT 1
+        FROM reviews r
+        WHERE r.customer_id = c.customer_id
+    )
+    
+GROUP BY
+	c.customer_id,
+    CONCAT(c.first_name, ' ',c.last_name),
+    c.loyalty_tier
+    
+HAVING COUNT(DISTINCT o.order_id) >= 1
+
+ORDER BY COUNT(DISTINCT o.order_id) DESC;
+
+/*
+Q10. Find products with sales but no recorded returns
+
+The merchandising team wants to identify products that have generated sales without any recorded returns.
+- Display product ID, product name, total units sold, and total item-level revenue.
+- Exclude cancelled orders.
+- Include only products with at least one qualifying sale.
+- Return products with no matching return record for any of their order items.
+- Sort by item-level revenue descending.
+*/
+
+SELECT
+	p.product_id,
+    p.product_name,
+    SUM(oi.quantity) AS total_unit_sold,
+    SUM(oi.line_total) AS total_item_revenue
+    
+FROM products p
+LEFT JOIN order_items oi
+	ON oi.product_id = p.product_id
+LEFT JOIN orders o
+	ON o.order_id = oi.order_id
+    
+WHERE o.order_status <> "Cancelled"
+	AND NOT EXISTS (
+		SELECT 1
+        FROM order_items oi2
+        JOIN returns r
+			ON r.order_item_id = oi2.order_item_id
+        WHERE oi2.product_id = p.product_id
+    )
+    
+GROUP BY
+	p.product_id,
+    p.product_name
+    
+HAVING COUNT(DISTINCT oi.product_id) >= 1
+    
+ORDER BY total_item_revenue DESC;
