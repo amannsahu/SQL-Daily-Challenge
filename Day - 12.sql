@@ -80,3 +80,74 @@ WHERE o1.order_status <> "Cancelled"
   )
     
 ORDER BY DATEDIFF(o1.order_date,o2.order_date) ASC;
+
+/*
+Q4. Find products within the same category with similar prices
+
+The merchandising team wants to identify products that customers might consider alternatives to one another.
+- Identify pairs of different active products in the same category.
+- Include pairs where the price difference is no greater than ₹500.
+- Display both product IDs, product names, category IDs, prices, and the price difference.
+- Show each pair only once.
+- Sort by price difference ascending.
+*/
+
+SELECT
+	p1.product_id AS p1_product_id,
+    p1.product_name AS p1_product_name,
+    p1.category_id AS p1_category_id,
+    p1.unit_price AS p1_unit_price,
+    
+    p2.product_id AS p2_product_id,
+    p2.product_name AS p2_product_name,
+    p2.category_id AS p2_category_id,
+    p1.unit_price AS p2_unit_price,
+    
+    ABS(p1.unit_price - p2.unit_price) AS price_difference
+    
+FROM products p1
+JOIN products p2
+	ON p1.category_id = p2.category_id
+    AND p1.product_id < p2.product_id
+    
+WHERE p1.is_active = 1
+	AND p2.is_active = 1
+    AND ABS(p1.unit_price - p2.unit_price) <= 500
+    
+ORDER BY price_difference ASC;
+
+/*
+Q5. Identify customers who purchased the same product on multiple orders
+
+The sales analytics team wants to identify customers who repeatedly purchase the same product.
+- Identify pairs of different non-cancelled orders from the same customer that contain the same product.
+- Display customer ID, product ID, both order IDs, both order dates, and the date gap.
+- Include only pairs where the later order was placed within 90 days of the earlier order.
+- Show each pair once and sort by date gap ascending.
+*/
+
+SELECT
+	o1.customer_id,
+    oi1.product_id,
+    o1.order_id AS o1_order_id,
+    o2.order_id AS o2_order_id,
+    o1.order_date AS o1_order_date,
+    o2.order_date AS o2_order_date,
+    DATEDIFF(o2.order_date,o1.order_date) AS date_gap
+
+FROM orders o1
+JOIN orders o2
+	ON o2.customer_id = o1.customer_id
+    AND o1.order_id < o2.order_id
+JOIN order_items oi1
+	ON oi1.order_id = o1.order_id
+JOIN order_items oi2
+	ON oi2.order_id = o2.order_id
+    AND oi2.product_id = oi1.product_id
+    
+WHERE o1.order_status <> "Cancelled"
+	AND o2.order_status <> "Cancelled"
+    AND o2.order_date >= o1.order_date
+    AND DATEDIFF(o2.order_date,o1.order_date) <= 90
+    
+ORDER BY date_gap ASC;
