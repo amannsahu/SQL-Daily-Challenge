@@ -4,16 +4,16 @@
 
 I am undertaking a **30-day SQL challenge** to strengthen my SQL problem-solving skills, develop analytical thinking, and prepare for Data Analyst opportunities.
 
-The objective is to solve **5 SQL problems every day**, progressing from foundational SQL concepts to advanced analytical techniques and real-world business case studies.
+The objective is to solve **10 SQL problems every day**, progressing from foundational SQL concepts to advanced analytical techniques and real-world business case studies.
 
 This challenge focuses on practical query writing, data analysis, business problem-solving, and writing efficient SQL queries using MySQL.
 
 ### 🎯 Challenge Goals
 
 - **Duration:** 30 Days
-- **Target:** 150 SQL Problems
+- **Target:** 300 SQL Problems
 - **SQL Dialect:** MySQL
-- **Daily Commitment:** 5 SQL Problems
+- **Daily Commitment:** 10 SQL Problems
 - **Difficulty:** Beginner to Advanced
 - **Focus:** Data Analysis, Business Intelligence, and Problem-Solving
 
@@ -38,7 +38,7 @@ This challenge focuses on practical query writing, data analysis, business probl
 
 ### 📝 Daily Practice Includes
 
-- Five SQL questions based on the day's topic
+- Ten SQL questions based on the day's topic
 - SQL solutions written using MySQL
 - Explanations of important queries and concepts
 - Business-oriented problem statements
@@ -89,7 +89,7 @@ These projects will help demonstrate my ability to use SQL to solve analytical p
 | 9 | 25–27 | Advanced SQL and Optimization | ⏳ Upcoming |
 | 10 | 28–30 | Case Studies and Revision | ⏳ Upcoming |
 
-**Target:** 30 Days | 150 SQL Problems
+**Target:** 30 Days | 300 SQL Problems
 
 *I will update the progress tracker as I complete each phase of the challenge.*
 
@@ -119,7 +119,7 @@ By the end of this challenge, I aim to:
 
 ## 📅 Challenge Commitment
 
-I am committed to solving five SQL problems every day, documenting my learning, and continuously improving my query-writing and analytical skills.
+I am committed to solving ten SQL problems every day, documenting my learning, and continuously improving my query-writing and analytical skills.
 
 This repository will be updated throughout the challenge as I progress from SQL fundamentals to advanced business analytics.
 
