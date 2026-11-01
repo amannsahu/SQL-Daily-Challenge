@@ -34,3 +34,35 @@ LEFT JOIN orders o
 GROUP BY
 	c.customer_id,
     CONCAT(c.first_name, ' ',c.last_name);
+    
+/*
+Q2. Finding potentially fraudulent transactions
+
+A payment monitoring team wants to flag suspicious orders using the following rules:
+- High Risk: Order amount >= 20,000 AND payment status is Failed.
+- Medium Risk: Order amount >= 10,000 AND payment status is Pending.
+- Low Risk: Order amount below 10,000 AND payment status is Failed.
+- Normal: All other transactions.
+Write a query that assigns a risk category to every payment transaction.
+Important: Use the transaction amount and payment status together. Make sure the classification follows the specified priority.
+*/
+
+SELECT
+	p.payment_id,
+    o.order_id,
+    o.order_total AS amount,
+    p.payment_status,
+    
+    CASE
+		WHEN o.order_total >= 20000 AND p.payment_status = "Failed"
+			THEN "High Risk"
+		WHEN o.order_total >= 10000 AND p.payment_status = "Pending"
+			THEN "Medium Risk"
+		WHEN o.order_total < 10000 AND p.payment_status = "Failed"
+			THEN "Low Risk"
+		ELSE "Normal"
+	END AS risk_category
+    
+FROM orders o
+JOIN payments p
+	ON p.order_id = o.order_id;
