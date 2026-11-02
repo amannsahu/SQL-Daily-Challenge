@@ -104,3 +104,59 @@ FROM payments
 
 GROUP BY payment_method
 HAVING COUNT(payment_id) >= 10;
+
+/*
+Q3. Revenue contribution by product category and order status
+
+The management team wants to compare category revenue across different order statuses.
+
+For each product category, calculate:
+- Revenue from completed orders.
+- Revenue from shipped orders.
+- Revenue from cancelled orders.
+- Total revenue from all orders.
+
+Return only categories where completed revenue exceeds 50,000.
+*/
+
+SELECT
+	c.category_name,
+    
+    SUM(
+		CASE
+			WHEN o.order_status = "Delivered" THEN oi.line_total
+            ELSE 0
+		END
+    ) AS completed_revenue,
+    
+    SUM(
+		CASE
+			WHEN o.order_status = "Shipped" THEN oi.line_total
+            ELSE 0
+		END
+    ) AS shipped_revenue,
+    
+    SUM(
+		CASE
+			WHEN o.order_status = "Cancelled" THEN oi.line_total
+            ELSE 0
+		END
+    ) AS cancelled_revenue,
+    
+    SUM(oi.line_total) AS total_revenue
+    
+FROM categories c
+JOIN products p
+	ON p.category_id = c.category_id
+JOIN order_items oi
+	ON oi.product_id = p.product_id
+JOIN orders o
+	ON o.order_id = oi.order_id
+    
+GROUP BY c.category_name
+HAVING SUM(
+		CASE
+			WHEN o.order_status = "Delivered" THEN oi.line_total
+            ELSE 0
+		END
+    ) > 50000;
