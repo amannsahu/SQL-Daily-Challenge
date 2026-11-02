@@ -151,3 +151,17 @@ WHERE o1.order_status <> "Cancelled"
     AND DATEDIFF(o2.order_date,o1.order_date) <= 90
     
 ORDER BY date_gap ASC;
+
+/*
+Q3. Revenue contribution by product category and order status
+
+The management team wants to compare category revenue across different order statuses.
+
+For each product category, calculate:
+- Revenue from completed orders.
+- Revenue from shipped orders.
+- Revenue from cancelled orders.
+- Total revenue from all orders.
+
+Return only categories where completed revenue exceeds 50,000.
+*/
