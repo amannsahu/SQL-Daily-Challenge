@@ -160,3 +160,67 @@ HAVING SUM(
             ELSE 0
 		END
     ) > 50000;
+    
+/*
+Q4. Monthly payment performance comparison
+
+The finance team wants to compare successful and failed transactions across months.
+
+For each month, calculate:
+- Successful transaction count.
+- Failed transaction count.
+- Pending transaction count.
+- Successful transaction amount.
+- Failed transaction amount.
+- Total transaction amount.
+
+Return only months where failed transactions account for more than 10% of all transactions.
+*/
+
+SELECT
+	MONTH(payment_date) AS payment_month,
+    
+    COUNT(
+		CASE
+			WHEN payment_status = "Paid" THEN 1
+		END
+    ) AS successful_count,
+    
+    COUNT(
+		CASE
+			WHEN payment_status = "Failed" THEN 1
+		END
+    ) AS failed_count,
+    
+    COUNT(
+		CASE
+			WHEN payment_status = "Pending" THEN 1
+		END
+    ) AS pending_count,
+    
+    SUM(
+		CASE
+			WHEN payment_status = "Paid" THEN amount
+            ELSE 0
+		END
+    ) AS successful_amount,
+    
+    SUM(
+		CASE
+			WHEN payment_status = "Failed" THEN amount
+            ELSE 0
+		END
+    ) AS failed_amount,
+    
+    SUM(amount) AS total_amount
+    
+FROM payments
+    
+GROUP BY MONTH(payment_date)
+HAVING
+	SUM(
+		CASE
+			WHEN payment_status = "Failed" THEN amount
+            ELSE 0
+		END
+    ) * 100 / SUM(amount) > 10;
