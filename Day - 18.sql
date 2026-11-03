@@ -46,3 +46,75 @@ ORDER BY
 	total_revenue DESC,
     delivered_orders DESC
 LIMIT 5;
+
+/*
+Q2. Find product categories with high revenue but low customer engagement
+
+The product strategy team wants to identify categories that generate significant revenue but receive relatively few customer reviews.
+
+For each product category, calculate:
+- Total revenue from delivered orders.
+- Total units sold.
+- Total number of reviews received by products in that category.
+
+Requirements:
+- Consider only delivered orders.
+- Include categories generating more than ₹50,000 in revenue.
+- Include only categories with fewer than 30 reviews.
+- Sort by revenue in descending order.
+*/
+
+SELECT
+    cs.category_name,
+    cs.total_revenue,
+    cs.total_units_sold,
+    COALESCE(cr.total_reviews, 0) AS total_reviews
+
+FROM
+(
+    SELECT
+        c.category_id,
+        c.category_name,
+        SUM(oi.line_total) AS total_revenue,
+        SUM(oi.quantity) AS total_units_sold
+
+    FROM categories c
+    JOIN products p
+        ON p.category_id = c.category_id
+    JOIN order_items oi
+        ON oi.product_id = p.product_id
+    JOIN orders o
+        ON o.order_id = oi.order_id
+
+    WHERE o.order_status = 'Delivered'
+
+    GROUP BY
+        c.category_id,
+        c.category_name
+
+    HAVING SUM(oi.line_total) > 50000
+) cs
+
+LEFT JOIN
+(
+    SELECT
+        p.category_id,
+        COUNT(DISTINCT r.review_id) AS total_reviews
+
+    FROM products p
+    JOIN order_items oi
+        ON oi.product_id = p.product_id
+    JOIN orders o
+        ON o.order_id = oi.order_id
+    JOIN reviews r
+        ON r.order_id = o.order_id
+
+    WHERE o.order_status = 'Delivered'
+
+    GROUP BY p.category_id
+) cr
+    ON cr.category_id = cs.category_id
+
+WHERE COALESCE(cr.total_reviews, 0) < 30
+
+ORDER BY cs.total_revenue DESC;
