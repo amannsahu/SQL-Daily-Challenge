@@ -194,16 +194,31 @@ SELECT
     LENGTH(TRIM(transaction_reference)) AS string_length,
     
     CASE
-		WHEN transaction_reference IS NULL
+		WHEN TRIM(transaction_reference) IS NULL
 			THEN "Null Reference"
 		WHEN transaction_reference = ''
 			THEN "Blank Reference"
-		WHEN LENGTH(transaction_reference) < 5
+		WHEN LENGTH(TRIM(transaction_reference)) < 5
 			THEN "Short Transaction"
 		ELSE "Valid Transaction"
 	END AS reference_status
     
 FROM payments;
+
+SELECT
+    UPPER(TRIM(transaction_reference)) AS normalized_reference,
+    COUNT(*) AS duplicate_count
+
+FROM payments
+
+WHERE transaction_reference IS NOT NULL
+  AND TRIM(transaction_reference) <> ''
+
+GROUP BY UPPER(TRIM(transaction_reference))
+
+HAVING COUNT(*) > 1
+
+ORDER BY duplicate_count DESC;
 
 /*
 Q9. Standardize and analyze product name patterns
@@ -217,10 +232,60 @@ Investigate product names that may be inconsistently formatted.
 - Exclude blank names from prefix analysis.
 */
 
+-- Product Name Formatting
 SELECT
-	product_id,
+    product_id,
     product_name AS original_product_name,
-    TRIM(product_name) AS product_name,
+
+    TRIM(product_name) AS trimmed_name,
+
     UPPER(TRIM(product_name)) AS uppercase_name,
-    LENGTH(TRIM(product_name)) AS name_length
-FROM 
+
+    LENGTH(TRIM(product_name)) AS name_length,
+
+    CASE
+        WHEN product_name IS NULL
+            THEN 'NULL Name'
+
+        WHEN TRIM(product_name) = ''
+            THEN 'Blank Name'
+
+        WHEN product_name <> TRIM(product_name)
+            THEN 'Extra Spaces'
+
+        ELSE 'Properly Formatted'
+    END AS formatting_status
+
+FROM products;
+
+-- Identifying duplicate normalized product name
+SELECT
+    UPPER(TRIM(product_name)) AS normalized_name,
+
+    COUNT(*) AS product_count
+
+FROM products
+
+WHERE product_name IS NOT NULL
+  AND TRIM(product_name) <> ''
+
+GROUP BY UPPER(TRIM(product_name))
+
+HAVING COUNT(*) > 1
+
+ORDER BY product_count DESC;
+
+-- Grouping products by their first five normalized characters
+SELECT
+    SUBSTRING(UPPER(TRIM(product_name)), 1, 5) AS name_prefix,
+
+    COUNT(*) AS product_count
+
+FROM products
+
+WHERE product_name IS NOT NULL
+  AND TRIM(product_name) <> ''
+
+GROUP BY SUBSTRING(UPPER(TRIM(product_name)), 1, 5)
+
+ORDER BY product_count DESC;
