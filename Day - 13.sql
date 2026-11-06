@@ -147,3 +147,80 @@ GROUP BY
     shipping_state
     
 ORDER BY distinct_orders DESC;
+
+/*
+Q7. Create readable order reference labels
+
+Generate a standardized display label for each order.
+- Display order_id, customer_id, order_date, and the generated reference label.
+- Use CONCAT() to combine a fixed prefix such as ORD- with the order ID.
+- Use DATE_FORMAT() to include the order date in YYYYMMDD format.
+- Use COALESCE() to provide a fallback label if any required component is missing.
+- Ensure the output remains unique for each order.
+*/
+
+SELECT
+	order_id,
+    customer_id,
+    order_date,
+    COALESCE(
+		CONCAT(
+			CONCAT("ORD-",'',order_id),
+            '-',
+			DATE_FORMAT(order_date, '%Y/%m/%d')
+        ),
+        "Missing Details") AS order_reference_label
+FROM orders;
+
+/*
+Q8. Analyze transaction reference formatting
+
+Audit transaction reference strings.
+- Display payment_id, transaction_reference, trimmed reference, uppercase reference, and string length.
+- Use TRIM(), UPPER(), and LENGTH().
+- Flag NULL, blank, and unusually short transaction references.
+- Identify references that become identical after trimming and standardizing letter casing.
+- Count duplicate normalized references, but do not label them confirmed duplicate transactions without further investigation.
+*/
+
+SELECT
+	payment_id,
+    transaction_reference,
+    
+    NULLIF(TRIM(transaction_reference),'') AS trimmed_reference,
+    
+    NULLIF(UPPER(TRIM(transaction_reference)),'') AS upper_reference,
+    
+    LENGTH(TRIM(transaction_reference)) AS string_length,
+    
+    CASE
+		WHEN transaction_reference IS NULL
+			THEN "Null Reference"
+		WHEN transaction_reference = ''
+			THEN "Blank Reference"
+		WHEN LENGTH(transaction_reference) < 5
+			THEN "Short Transaction"
+		ELSE "Valid Transaction"
+	END AS reference_status
+    
+FROM payments;
+
+/*
+Q9. Standardize and analyze product name patterns
+
+Investigate product names that may be inconsistently formatted.
+- Display product_id, original product name, trimmed name, uppercase name, and name length.
+- Identify names with leading or trailing spaces.
+- Find product names that become identical after trimming and converting to uppercase.
+- Use SUBSTRING() to display the first 5 characters of each normalized product name.
+- Group products by this prefix and calculate the product count.
+- Exclude blank names from prefix analysis.
+*/
+
+SELECT
+	product_id,
+    product_name AS original_product_name,
+    TRIM(product_name) AS product_name,
+    UPPER(TRIM(product_name)) AS uppercase_name,
+    LENGTH(TRIM(product_name)) AS name_length
+FROM 
