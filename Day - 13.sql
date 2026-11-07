@@ -289,3 +289,104 @@ WHERE product_name IS NOT NULL
 GROUP BY SUBSTRING(UPPER(TRIM(product_name)), 1, 5)
 
 ORDER BY product_count DESC;
+
+/*
+Q10. Build a customer segmentation report using standardized text
+
+Create a customer-level report suitable for marketing segmentation.
+- Display customer_id, standardized full name, normalized city, normalized acquisition channel, loyalty tier, and total order value.
+- Use CONCAT(), TRIM(), UPPER() or LOWER(), and COALESCE() to standardize text fields.
+- Aggregate order value at the customer level before joining it to customer details.
+- Include customers who have never placed an order, displaying their order value as zero.
+- Group the resulting report by normalized acquisition channel and loyalty tier to calculate customer count, total order value, and average order value per customer.
+- Ensure missing categories are labeled clearly and do not inflate order value through joins.
+*/
+
+-- Customer Level Report
+
+SELECT
+    c.customer_id,
+
+    UPPER(
+        TRIM(
+            CONCAT(
+                COALESCE(c.first_name, ''),
+                ' ',
+                COALESCE(c.last_name, '')
+            )
+        )
+    ) AS standardized_full_name,
+
+    COALESCE(
+        NULLIF(TRIM(c.city), ''),
+        'City Not Found'
+    ) AS normalized_city,
+
+    COALESCE(
+        NULLIF(TRIM(c.acquisition_channel), ''),
+        'Missing Details'
+    ) AS normalized_acquisition_channel,
+
+    COALESCE(c.loyalty_tier, 'Not Assigned') AS loyalty_tier,
+
+    COALESCE(o.total_order_value, 0) AS total_order_value
+
+FROM customers c
+
+LEFT JOIN (
+    SELECT
+        customer_id,
+        SUM(order_total) AS total_order_value
+    FROM orders
+    GROUP BY customer_id
+) o
+    ON c.customer_id = o.customer_id;
+    
+-- Acquisition Channel & Loyalty Tier Report
+
+SELECT
+    normalized_acquisition_channel,
+    loyalty_tier,
+
+    COUNT(customer_id) AS customer_count,
+
+    SUM(total_order_value) AS total_order_value,
+
+    ROUND(
+        AVG(total_order_value), 2
+    ) AS avg_order_value_per_customer
+
+FROM (
+    SELECT
+        c.customer_id,
+
+        COALESCE(
+            NULLIF(TRIM(c.acquisition_channel), ''),
+            'Missing Details'
+        ) AS normalized_acquisition_channel,
+
+        COALESCE(
+            c.loyalty_tier,
+            'Not Assigned'
+        ) AS loyalty_tier,
+
+        COALESCE(o.total_order_value, 0) AS total_order_value
+
+    FROM customers c
+
+    LEFT JOIN (
+        SELECT
+            customer_id,
+            SUM(order_total) AS total_order_value
+        FROM orders
+        GROUP BY customer_id
+    ) o
+        ON c.customer_id = o.customer_id
+
+) customer_report
+
+GROUP BY
+    normalized_acquisition_channel,
+    loyalty_tier
+
+ORDER BY total_order_value DESC;
